@@ -91,7 +91,24 @@
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-log4j12</artifactId>
 			<version>1.7.12</version>
-		</dependency>		
+		</dependency>	
+		
+		<dependency>
+    		<groupId>org.apache.camel</groupId>
+    		<artifactId>camel-sql</artifactId>
+    		<version>${camel-version}</version>
+    		<!-- use the same version as your Camel core version -->
+		</dependency>	
+		<dependency>
+			<groupId>commons-dbcp</groupId>
+			<artifactId>commons-dbcp</artifactId>
+			<version>1.4</version>
+		</dependency>
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<version>5.1.6</version>
+		</dependency>
 		
 	</dependencies>
 
@@ -138,7 +155,7 @@
 							<goal>copy-resources</goal>
 						</goals>
 						<configuration>
-							<outputDirectory>${basedir}/target/camelNetworkAdvisor</outputDirectory>
+							<outputDirectory>${basedir}/target/camelOVVM</outputDirectory>
 							<resources>
 								<resource>
 									<directory>${basedir}/src/main/resources</directory>
@@ -160,7 +177,7 @@
 							<goal>copy-dependencies</goal>
 						</goals>
 						<configuration>
-							<outputDirectory>${project.build.directory}/camelNetworkAdvisor/lib</outputDirectory>
+							<outputDirectory>${project.build.directory}/camelOVVM/lib</outputDirectory>
 							<overWriteReleases>false</overWriteReleases>
 							<overWriteSnapshots>false</overWriteSnapshots>
 							<overWriteIfNewer>true</overWriteIfNewer>
@@ -184,7 +201,7 @@
 						</manifestEntries>
 					</archive>
  
-					<finalName>camelNetworkAdvisor/camelNetworkAdvisor</finalName>
+					<finalName>camelOVVM/camelOVVM</finalName>
 				</configuration>
 			</plugin>
 			
@@ -227,5 +244,5 @@
 	<organization>
 		<name>AT Consulting</name>
 	</organization>
-	<name>SAN Network Advisor REST API Integration</name>
+	<name>OVVM Status Integration</name>
 </project>

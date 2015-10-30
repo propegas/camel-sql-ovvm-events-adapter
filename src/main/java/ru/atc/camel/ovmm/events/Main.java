@@ -58,7 +58,7 @@ public class Main {
 			public void configure() throws Exception {
 				
 				PropertiesComponent properties = new PropertiesComponent();
-				properties.setLocation("classpath:restna.properties");
+				properties.setLocation("classpath:ovmm.properties");
 				getContext().addComponent("properties", properties);
 
 				ConnectionFactory connectionFactory = new ActiveMQConnectionFactory
