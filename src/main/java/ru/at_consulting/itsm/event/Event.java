@@ -46,8 +46,17 @@ public class Event implements  Serializable {
      //@Column(name = "Mc_object", nullable = true)
      public String object;
      public String parametr; 
+     public String parametrValue; 
      
-     //@Column(name = "Mc_service", nullable = true)
+     public String getParametrValue() {
+		return parametrValue;
+	}
+
+	public void setParametrValue(String parametrValue) {
+		this.parametrValue = parametrValue;
+	}
+
+	//@Column(name = "Mc_service", nullable = true)
      public String service;
      
      //@Column(name = "Mc_event_subcategory", nullable = true)

@@ -36,7 +36,7 @@ public class Main {
 		if (activemq_port == null || activemq_port == "" )
 			activemq_port = "61616";
 		if (activemq_ip == null || activemq_ip == "" )
-			activemq_ip = "192.168.157.73";
+			activemq_ip = "172.20.19.195";
 		
 		logger.info("activemq_ip: " + activemq_ip);
 		logger.info("sdce_port: " + activemq_port);
@@ -56,6 +56,11 @@ public class Main {
 			
 			@Override
 			public void configure() throws Exception {
+				
+				JsonDataFormat myJson = new JsonDataFormat();
+				myJson.setPrettyPrint(true);
+				myJson.setLibrary(JsonLibrary.Jackson);
+				myJson.setJsonView(Event.class);
 				
 				PropertiesComponent properties = new PropertiesComponent();
 				properties.setLocation("classpath:ovmm.properties");
@@ -79,11 +84,11 @@ public class Main {
 		    	
 		    
 				.idempotentConsumer(
-			             header("EventId"),
-			             FileIdempotentRepository.fileIdempotentRepository(cachefile)
+			             header("EventUniqId"),
+			             FileIdempotentRepository.fileIdempotentRepository(cachefile,2500)
 			             )
 				
-				
+					.marshal(myJson)
 		    		.log("${id} ${header.EventId}")
 		    		.to("activemq:OVMM-tgk1-Events.queue");
 				}

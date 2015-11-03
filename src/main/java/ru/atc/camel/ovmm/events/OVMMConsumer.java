@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -17,17 +18,18 @@ import org.apache.camel.impl.ScheduledPollConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+//import com.apc.stdws.xsd.isxcentral._2009._10.ISXCDevice;
 //import com.apc.stdws.xsd.isxcentral._2009._10.ISXCAlarmSeverity;
 //import com.apc.stdws.xsd.isxcentral._2009._10.ISXCAlarm;
 //import com.apc.stdws.xsd.isxcentral._2009._10.ISXCDevice;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+//import com.google.gson.Gson;
+//import com.google.gson.GsonBuilder;
+//import com.google.gson.JsonArray;
+//import com.google.gson.JsonElement;
+//import com.google.gson.JsonObject;
+//import com.google.gson.JsonParser;
 
-import ru.at_consulting.itsm.device.Device;
+//import ru.at_consulting.itsm.device.Device;
 import ru.at_consulting.itsm.event.Event;
 import ru.atc.camel.ovmm.events.api.OVMMDevices;
 import ru.atc.camel.ovmm.events.api.OVMMEvents;
@@ -40,6 +42,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+
 //import com.mysql.jdbc.Connection;
 import com.mysql.jdbc.Driver;
 
@@ -107,20 +112,31 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 				
 				listVmStatuses = getVmStatuses(vmuuid, dataSource);
 				
-				String datetime = listVmStatuses.get(0).get("datetime").toString();
-				String ping_colour = listVmStatuses.get(0).get("ping_colour").toString();
-				String snmp_colour = listVmStatuses.get(0).get("snmp_colour").toString();
-				String vmtools_colour = listVmStatuses.get(0).get("vmtools_colour").toString();
-				String backup_colour = listVmStatuses.get(0).get("backup_colour").toString();
-				String power_colour = listVmStatuses.get(0).get("power_colour").toString();
-				//String ping_colour1 = listVmStatuses.get(0).get("ping_colour").toString();
-				//vmuuid  = listVmStatuses.get(0).get("uuid").toString();
-				logger.info(vmtitle + ": " + datetime );
-				logger.info(vmtitle + ": " + ping_colour);
-				logger.info(vmtitle + ": " + snmp_colour);
-				logger.info(vmtitle + ": " + vmtools_colour);
-				logger.info(vmtitle + ": " + backup_colour);
-				logger.info(vmtitle + ": " + power_colour);
+				HashMap<String, Object> sss = listVmStatuses.get(0);
+				
+				List<Event> vmevents = genEvents(vmtitle, sss);
+				
+				for(int i1=0; i1 < vmevents.size(); i1++) {
+					
+					logger.info("*** Create Exchange ***");
+					Exchange exchange = getEndpoint().createExchange();
+					exchange.getIn().setBody(vmevents.get(i1), Event.class);
+					exchange.getIn().setHeader("EventUniqId", vmevents.get(i1).getHost() + "_" +
+							vmevents.get(i1).getObject() + "_" + vmevents.get(i1).getParametrValue());
+					exchange.getIn().setHeader("Object", vmevents.get(i1).getObject());
+					exchange.getIn().setHeader("Timestamp", vmevents.get(i1).getTimestamp());
+					//exchange.getIn().setHeader("DeviceType", vmevents.get(i).getDeviceType());
+					
+					
+
+					try {
+						getProcessor().process(exchange);
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} 
+				
+				}
 				
 				//genevent = geEventObj( device, "fcFabric" );
 				
@@ -153,6 +169,77 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 	
 	
         return 1;
+	}
+	
+	private static List<Event> genEvents( String vmtitle, HashMap<String, Object> vmStatuses ) {
+		
+		String datetime = vmStatuses.get("datetime").toString();
+		String ping_colour = vmStatuses.get("ping_colour").toString();
+		String snmp_colour = vmStatuses.get("snmp_colour").toString();
+		String vmtools_colour = vmStatuses.get("vmtools_colour").toString();
+		String backup_colour = vmStatuses.get("backup_colour").toString();
+		String power_colour = vmStatuses.get("power_colour").toString();
+		//String ping_colour1 = listVmStatuses.get(0).get("ping_colour").toString();
+		//vmuuid  = listVmStatuses.get(0).get("uuid").toString();
+		logger.info(vmtitle + ": " + datetime );
+		logger.info(vmtitle + ": " + ping_colour);
+		logger.info(vmtitle + ": " + snmp_colour);
+		logger.info(vmtitle + ": " + vmtools_colour);
+		logger.info(vmtitle + ": " + backup_colour);
+		logger.info(vmtitle + ": " + power_colour);
+				
+		// Create Device object for further use
+		Event event = genDeviceObj(vmtitle, vmStatuses);
+		List<Event> eventList = new ArrayList<Event>();;
+		eventList.add(event);
+
+		
+		return eventList;
+	}
+
+	public static Event genDeviceObj( String vmtitle, HashMap<String, Object> vmStatuses) {
+		Event event;
+		
+		event = new Event();
+		//Timestamp timestamp = null;
+		long timeInMillisSinceEpoch = 0;
+		//long timeInMinutesSinceEpoch = 0;
+		//DATE FORMAT: 2015-11-02 17:55:33.0
+		String eventdate = vmStatuses.get("datetime").toString();
+		try {
+		    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSS");
+		    Date parsedDate = dateFormat.parse(eventdate);
+		    timeInMillisSinceEpoch = parsedDate.getTime() / 1000; 
+		    //timeInMinutesSinceEpoch = timeInMillisSinceEpoch / (60 * 1000);
+		} catch(Exception e) {
+			//this generic but you can control another types of exception
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		if (timeInMillisSinceEpoch != 0){
+			logger.info("timeInMillisSinceEpoch: " + timeInMillisSinceEpoch);
+			//logger.info("timeInMinutesSinceEpoch: " + timeInMinutesSinceEpoch);
+			event.setTimestamp(timeInMillisSinceEpoch);
+		}
+		
+		event.setHost(vmtitle);
+		event.setCi(vmtitle);
+		//vmStatuses.get("ping_colour").toString())
+		event.setObject("ping_colour");
+		event.setParametr("Status");
+		event.setParametrValue(vmStatuses.get("ping_colour").toString());
+		event.setCategory("SYSTEM");
+		event.setStatus("OPEN");
+		event.setService("OVVM");
+		/*
+
+		//System.out.println(event.toString());
+		
+		log.info(event.toString());
+		*/
+		return event;
+				
 	}
 	
 	
