@@ -107,7 +107,7 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 			  	
 				vmtitle = listHostsAndUuids.get(i).get("title").toString();
 				vmuuid  = listHostsAndUuids.get(i).get("uuid").toString();
-				logger.info("MYSQL row " + i + ": " + vmtitle + 
+				logger.debug("MYSQL row " + i + ": " + vmtitle + 
 						" " + vmuuid);
 				
 				listVmStatuses = getVmStatuses(vmuuid, dataSource);
@@ -181,23 +181,37 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 		String power_colour = vmStatuses.get("power_colour").toString();
 		//String ping_colour1 = listVmStatuses.get(0).get("ping_colour").toString();
 		//vmuuid  = listVmStatuses.get(0).get("uuid").toString();
-		logger.info(vmtitle + ": " + datetime );
-		logger.info(vmtitle + ": " + ping_colour);
-		logger.info(vmtitle + ": " + snmp_colour);
-		logger.info(vmtitle + ": " + vmtools_colour);
-		logger.info(vmtitle + ": " + backup_colour);
-		logger.info(vmtitle + ": " + power_colour);
-				
-		// Create Device object for further use
-		Event event = genDeviceObj(vmtitle, vmStatuses);
-		List<Event> eventList = new ArrayList<Event>();;
+		logger.debug(vmtitle + ": " + datetime );
+		logger.debug(vmtitle + ": " + ping_colour);
+		logger.debug(vmtitle + ": " + snmp_colour);
+		logger.debug(vmtitle + ": " + vmtools_colour);
+		logger.debug(vmtitle + ": " + backup_colour);
+		logger.debug(vmtitle + ": " + power_colour);
+		
+		Event event;
+		List<Event> eventList = new ArrayList<Event>();
+		// Create Event object for further use
+		event = genDeviceObj(vmtitle, "ping", 
+				vmStatuses.get("ping_colour").toString(), vmStatuses.get("datetime").toString());
+		eventList.add(event);
+		event = genDeviceObj(vmtitle, "snmp", 
+				vmStatuses.get("snmp_colour").toString(), vmStatuses.get("datetime").toString());
+		eventList.add(event);
+		event = genDeviceObj(vmtitle, "vmtools", 
+				vmStatuses.get("vmtools_colour").toString(), vmStatuses.get("datetime").toString());
+		eventList.add(event);
+		event = genDeviceObj(vmtitle, "backup", 
+				vmStatuses.get("backup_colour").toString(), vmStatuses.get("datetime").toString());
+		eventList.add(event);
+		event = genDeviceObj(vmtitle, "power", 
+				vmStatuses.get("power_colour").toString(), vmStatuses.get("datetime").toString());
 		eventList.add(event);
 
 		
 		return eventList;
 	}
 
-	public static Event genDeviceObj( String vmtitle, HashMap<String, Object> vmStatuses) {
+	private static Event genDeviceObj( String vmtitle, String object, String parametrValue, String datetime ) {
 		Event event;
 		
 		event = new Event();
@@ -205,7 +219,7 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 		long timeInMillisSinceEpoch = 0;
 		//long timeInMinutesSinceEpoch = 0;
 		//DATE FORMAT: 2015-11-02 17:55:33.0
-		String eventdate = vmStatuses.get("datetime").toString();
+		String eventdate = datetime;
 		try {
 		    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSS");
 		    Date parsedDate = dateFormat.parse(eventdate);
@@ -218,7 +232,7 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 		}
 		
 		if (timeInMillisSinceEpoch != 0){
-			logger.info("timeInMillisSinceEpoch: " + timeInMillisSinceEpoch);
+			logger.debug("timeInMillisSinceEpoch: " + timeInMillisSinceEpoch);
 			//logger.info("timeInMinutesSinceEpoch: " + timeInMinutesSinceEpoch);
 			event.setTimestamp(timeInMillisSinceEpoch);
 		}
@@ -226,24 +240,34 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 		event.setHost(vmtitle);
 		event.setCi(vmtitle);
 		//vmStatuses.get("ping_colour").toString())
-		event.setObject("ping_colour");
+		event.setObject(object);
 		event.setParametr("Status");
-		event.setParametrValue(vmStatuses.get("ping_colour").toString());
+		String status = setRightValue(parametrValue);
+		event.setParametrValue(status);
+		event.setSeverity(setRightValue(parametrValue));
+		event.setMessage(setRightMessage(vmtitle, object, status));
 		event.setCategory("SYSTEM");
 		event.setStatus("OPEN");
 		event.setService("OVVM");
-		/*
+		
 
 		//System.out.println(event.toString());
 		
-		log.info(event.toString());
-		*/
+		logger.info(event.toString());
+		
 		return event;
 				
 	}
 	
 	
 	
+	private static String setRightMessage(String vmtitle, String object, String status) {
+		// TODO Auto-generated method stub
+		
+		String newmessage = String.format("ВМ: %s. Статус проверки %s: %s", vmtitle, object, status);
+		return newmessage;
+	}
+
 	private List<HashMap<String, Object>> getVmStatuses(String vmuuid, DataSource dataSource) throws SQLException {
 		// TODO Auto-generated method stub
 		List<HashMap<String,Object>> list = new ArrayList<HashMap<String,Object>>();
@@ -264,7 +288,7 @@ public class OVMMConsumer extends ScheduledPollConsumer {
             			+ "FROM `%s`" , vm_ping_col, vm_snmp_col, vm_vmtools_col, vm_backup_col, vm_power_col, vmtable ));
             //pstmt.setString(1, vm_vmtools_col);
             
-            logger.info("MYSQL query: " +  pstmt.toString()); 
+            logger.debug("MYSQL query: " +  pstmt.toString()); 
             resultset = pstmt.executeQuery();
             //con.commit();
             list = convertRStoList(resultset);
@@ -306,7 +330,7 @@ public class OVMMConsumer extends ScheduledPollConsumer {
                         "WHERE tree.uuid <> ?");
             pstmt.setString(1, "");
             
-            logger.info("MYSQL query: " +  pstmt.toString()); 
+            logger.debug("MYSQL query: " +  pstmt.toString()); 
             resultset = pstmt.executeQuery();
             //con.commit();
             
@@ -326,6 +350,8 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 
 		} finally {
             if (con != null) con.close();
+            
+            //return list;
         }
 		
 	}
@@ -339,11 +365,11 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 	        int columns = md.getColumnCount();
 	        //result.getArray(columnIndex)
 	        //resultset.get
-	        logger.info("MYSQL columns count: " + columns); 
+	        logger.debug("MYSQL columns count: " + columns); 
 	        
 	        resultset.last();
 	        int count = resultset.getRow();
-	        logger.info("MYSQL rows2 count: " + count); 
+	        logger.debug("MYSQL rows2 count: " + count); 
 	        resultset.beforeFirst();
 	        
 	        int i = 0, n = 0;
@@ -384,5 +410,58 @@ public class OVMMConsumer extends ScheduledPollConsumer {
               
         return ds;
     }
+	
+	public static String setRightValue(String colour)
+	{
+		String newstatus = "";
+		
+		switch (colour) {
+        	case "#006600":  newstatus = "OK";break;
+        	case "#FF0000":  newstatus = "ERROR";break;
+        	default: newstatus = "N/A";break;
+
+        	
+		}
+		/*
+		System.out.println("***************** colour: " + colour);
+		System.out.println("***************** status: " + newstatus);
+		*/
+		return newstatus;
+	}
+	
+	public static String setRightSeverity(String colour)
+	{
+		String newseverity = "";
+		/*
+		 * 
+		<pre>
+ * &lt;simpleType name="ISXCAlarmSeverity">
+ *   &lt;restriction base="{http://www.w3.org/2001/XMLSchema}string">
+ *     &lt;enumeration value="ERROR"/>
+ *     &lt;enumeration value="FAILURE"/>
+ *     &lt;enumeration value="CRITICAL"/>
+ *     &lt;enumeration value="WARNING"/>
+ *     &lt;enumeration value="INFORMATIONAL"/>
+ *   &lt;/restriction>
+ * &lt;/simpleType>
+ * </pre>
+
+		 */
+		
+		
+		
+		switch (colour) {
+        	case "#006600":  newseverity = PersistentEventSeverity.OK.name();break;
+        	case "#FF0000":  newseverity = PersistentEventSeverity.CRITICAL.name();break;
+        	default: newseverity = PersistentEventSeverity.INFO.name();break;
+
+        	
+		}
+		/*
+		System.out.println("***************** colour: " + colour);
+		System.out.println("***************** newseverity: " + newseverity);
+		*/
+		return newseverity;
+	}
 
 }
