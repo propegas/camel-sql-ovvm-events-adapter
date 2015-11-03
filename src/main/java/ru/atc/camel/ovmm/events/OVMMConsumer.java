@@ -107,7 +107,7 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 			  	
 				vmtitle = listHostsAndUuids.get(i).get("title").toString();
 				vmuuid  = listHostsAndUuids.get(i).get("uuid").toString();
-				logger.debug("MYSQL row " + i + ": " + vmtitle + 
+				logger.info("MYSQL row " + i + ": " + vmtitle + 
 						" " + vmuuid);
 				
 				listVmStatuses = getVmStatuses(vmuuid, dataSource);
@@ -118,7 +118,7 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 				
 				for(int i1=0; i1 < vmevents.size(); i1++) {
 					
-					logger.info("*** Create Exchange ***");
+					logger.info("*** Create Exchange ***" );
 					Exchange exchange = getEndpoint().createExchange();
 					exchange.getIn().setBody(vmevents.get(i1), Event.class);
 					exchange.getIn().setHeader("EventUniqId", vmevents.get(i1).getHost() + "_" +
@@ -418,7 +418,7 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 		switch (colour) {
         	case "#006600":  newstatus = "OK";break;
         	case "#FF0000":  newstatus = "ERROR";break;
-        	default: newstatus = "N/A";break;
+        	default: newstatus = "NA";break;
 
         	
 		}

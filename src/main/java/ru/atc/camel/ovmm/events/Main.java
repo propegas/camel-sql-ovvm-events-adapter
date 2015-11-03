@@ -89,7 +89,7 @@ public class Main {
 			             )
 				
 					.marshal(myJson)
-		    		.log("${id} ${header.EventId}")
+		    		.log("${id} ${header.EventUniqId}")
 		    		.to("activemq:OVMM-tgk1-Events.queue");
 				}
 		});
