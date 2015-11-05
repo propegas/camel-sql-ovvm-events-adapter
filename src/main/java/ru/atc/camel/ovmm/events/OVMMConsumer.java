@@ -36,6 +36,7 @@ import ru.atc.camel.ovmm.events.api.OVMMEvents;
 
 import javax.sql.DataSource;
 import org.apache.commons.dbcp.BasicDataSource;
+import org.apache.commons.lang.exception.ExceptionUtils;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -99,45 +100,60 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 		DataSource dataSource = setupDataSource();
 		
 		List<HashMap<String, Object>> listHostsAndUuids = new ArrayList<HashMap<String,Object>>();
-		List<HashMap<String, Object>> listVmStatuses = new ArrayList<HashMap<String,Object>>();
+		List<HashMap<String, Object>> listVmStatuses = null;
+		int events = 0;
+		int statuses = 0;
 		try {
+			
+			logger.info( String.format("***Try to get VMs***"));
+			
 			listHostsAndUuids = getHostsAndUuids(dataSource);
+			
+			logger.info( String.format("***Received %d VMs from SQL***", listHostsAndUuids.size()));
 			String vmtitle, vmuuid;
+			
+			logger.info( String.format("***Try to get VMs statuses***"));
 			for(int i=0; i < listHostsAndUuids.size(); i++) {
 			  	
 				vmtitle = listHostsAndUuids.get(i).get("title").toString();
 				vmuuid  = listHostsAndUuids.get(i).get("uuid").toString();
-				logger.info("MYSQL row " + i + ": " + vmtitle + 
+				logger.debug("MYSQL row " + i + ": " + vmtitle + 
 						" " + vmuuid);
 				
 				listVmStatuses = getVmStatuses(vmuuid, dataSource);
 				
-				HashMap<String, Object> sss = listVmStatuses.get(0);
-				
-				List<Event> vmevents = genEvents(vmtitle, sss);
-				
-				for(int i1=0; i1 < vmevents.size(); i1++) {
+				if ( listVmStatuses != null ){
+					HashMap<String, Object> sss = listVmStatuses.get(0);
 					
-					logger.info("*** Create Exchange ***" );
-					Exchange exchange = getEndpoint().createExchange();
-					exchange.getIn().setBody(vmevents.get(i1), Event.class);
-					exchange.getIn().setHeader("EventUniqId", vmevents.get(i1).getHost() + "_" +
-							vmevents.get(i1).getObject() + "_" + vmevents.get(i1).getParametrValue());
-					exchange.getIn().setHeader("Object", vmevents.get(i1).getObject());
-					exchange.getIn().setHeader("Timestamp", vmevents.get(i1).getTimestamp());
-					//exchange.getIn().setHeader("DeviceType", vmevents.get(i).getDeviceType());
+					List<Event> vmevents = genEvents(vmtitle, sss);
 					
+					for(int i1=0; i1 < vmevents.size(); i1++) {
+						
+						statuses++;
+						
+						logger.debug("*** Create Exchange ***" );
+						
+						Exchange exchange = getEndpoint().createExchange();
+						exchange.getIn().setBody(vmevents.get(i1), Event.class);
+						exchange.getIn().setHeader("EventUniqId", vmevents.get(i1).getHost() + "_" +
+								vmevents.get(i1).getObject() + "_" + vmevents.get(i1).getParametrValue());
+						exchange.getIn().setHeader("Object", vmevents.get(i1).getObject());
+						exchange.getIn().setHeader("Timestamp", vmevents.get(i1).getTimestamp());
+						//exchange.getIn().setHeader("DeviceType", vmevents.get(i).getDeviceType());
+						
+						
+	
+						try {
+							getProcessor().process(exchange);
+							events++;
+						} catch (Exception e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+							logger.error( String.format("Error while process Exchange message: %s ", e));
+						} 
 					
-
-					try {
-						getProcessor().process(exchange);
-					} catch (Exception e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					} 
-				
+					}
 				}
-				
 				//genevent = geEventObj( device, "fcFabric" );
 				
 				/*
@@ -158,14 +174,17 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 				*/
 	  	
 			}
+			
+			logger.info( String.format("***Received %d VMs statuses from SQL*** ", statuses));
 	  
 			
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			logger.error( String.format("Error while get VM SQL: %s ", e));
 		}
 		
-		
+		logger.info( String.format("***Sended to Exchange messages: %d ***", events));
 	
 	
         return 1;
@@ -253,7 +272,7 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 
 		//System.out.println(event.toString());
 		
-		logger.info(event.toString());
+		logger.debug(event.toString());
 		
 		return event;
 				
@@ -279,7 +298,9 @@ public class OVMMConsumer extends ScheduledPollConsumer {
         	con = (Connection) dataSource.getConnection();
 			//con.setAutoCommit(false);
 			
-        	String vmtable = "b_VM" + vmuuid;
+        	String table_prefix =  endpoint.getConfiguration().getTable_prefix();
+        	
+        	String vmtable = table_prefix + vmuuid;
 
         	
             pstmt = con.prepareStatement(String.format("SELECT datetime, %s_colour as ping_colour, "
@@ -303,7 +324,13 @@ public class OVMMConsumer extends ScheduledPollConsumer {
             
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			//e.printStackTrace();
+			//logger.error( "Error1 while SQL execution: " + e.getMessage() );
+			//logger.error( "Error2 while SQL execution: " + e.getCause() );
+			logger.error( String.format("Error while SQL execution: %s ", e));
+			//logger.error( ExceptionUtils.getFullStackTrace(e) );
+			
+			//logger.error("Error while SQL executiom: " + e.printStackTrace());
 			
 			return null;
 

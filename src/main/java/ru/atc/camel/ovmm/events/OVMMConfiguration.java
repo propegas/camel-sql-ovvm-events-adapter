@@ -17,6 +17,17 @@ public class OVMMConfiguration {
     private String mysql_host;
     
     @UriParam
+    private String table_prefix;
+    
+    public String getTable_prefix() {
+		return table_prefix;
+	}
+
+	public void setTable_prefix(String table_prefix) {
+		this.table_prefix = table_prefix;
+	}
+
+	@UriParam
     private String mysql_port;
     
     @UriParam

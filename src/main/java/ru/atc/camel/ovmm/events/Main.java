@@ -80,6 +80,7 @@ public class Main {
 		    			+ "mysql_host={{mysql_host}}&"
 		    			+ "mysql_db={{mysql_db}}&"
 		    			+ "mysql_port={{mysql_port}}&"
+		    			+ "table_prefix={{table_prefix}}&"
 		    			+ "query={{query}}")
 		    	
 		    
@@ -89,8 +90,8 @@ public class Main {
 			             )
 				
 					.marshal(myJson)
-		    		.log("${id} ${header.EventUniqId}")
-		    		.to("activemq:OVMM-tgk1-Events.queue");
+		    		.to("activemq:OVMM-tgk1-Events.queue")
+				    .log("${id} ${header.EventUniqId}");
 				}
 		});
 		
