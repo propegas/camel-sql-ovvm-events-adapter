@@ -1,9 +1,13 @@
 package ru.atc.camel.ovmm.events;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -11,10 +15,14 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.camel.Endpoint;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
+import org.apache.camel.Producer;
+import org.apache.camel.ProducerTemplate;
+import org.apache.camel.component.cache.CacheConstants;
 import org.apache.camel.impl.ScheduledPollConsumer;
-
+import org.apache.camel.model.ModelCamelContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,6 +71,8 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 	public String vm_backup_col =  "attribute046";
 	public String vm_power_col =  "attribute004";
 	
+	public static ModelCamelContext context;
+	
 	public enum PersistentEventSeverity {
 	    OK, INFO, WARNING, MINOR, MAJOR, CRITICAL;
 		
@@ -82,6 +92,16 @@ public class OVMMConsumer extends ScheduledPollConsumer {
         this.setDelay(endpoint.getConfiguration().getDelay());
 	}
 	
+	public static ModelCamelContext getContext() {
+		// TODO Auto-generated method stub
+				return context;
+	}
+	
+	public static void setContext(ModelCamelContext context1){
+		context = context1;
+
+	}
+
 	@Override
 	protected int poll() throws Exception {
 		
@@ -133,12 +153,33 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 						
 						logger.debug("*** Create Exchange ***" );
 						
+						
+						String key = vmevents.get(i1).getHost() + "_" +
+								vmevents.get(i1).getObject() + "_" + vmevents.get(i1).getParametrValue();
+						String key1 = vmevents.get(i1).getHost() + "_" +
+								vmevents.get(i1).getObject();
+						
 						Exchange exchange = getEndpoint().createExchange();
 						exchange.getIn().setBody(vmevents.get(i1), Event.class);
-						exchange.getIn().setHeader("EventUniqId", vmevents.get(i1).getHost() + "_" +
-								vmevents.get(i1).getObject() + "_" + vmevents.get(i1).getParametrValue());
+						exchange.getIn().setHeader("EventUniqId", key);
+						
+						exchange.getIn().setHeader("EventUniqIdWithoutStatus", key1);
+						
+						exchange.getIn().setHeader("EventStatus", vmevents.get(i1).getParametrValue());
+						
 						exchange.getIn().setHeader("Object", vmevents.get(i1).getObject());
 						exchange.getIn().setHeader("Timestamp", vmevents.get(i1).getTimestamp());
+						
+						exchange.getIn().setHeader(CacheConstants.CACHE_OPERATION, CacheConstants.CACHE_OPERATION_CHECK);
+						exchange.getIn().setHeader(CacheConstants.CACHE_KEY, key);
+						
+						exchange.getIn().setHeader("CamelCacheOperation1", "CamelCacheCheck");
+						exchange.getIn().setHeader("CamelCacheKey1", key);
+						
+						logger.debug(String.format("*** CACHE HEADERS: %s %s  ***", CacheConstants.CACHE_OPERATION, CacheConstants.CACHE_OPERATION_CHECK ));
+						logger.debug(String.format("*** CACHE HEADERS: %s %s  ***", CacheConstants.CACHE_KEY, key ));
+						
+						exchange.getIn().setHeader("TEST", key);
 						//exchange.getIn().setHeader("DeviceType", vmevents.get(i).getDeviceType());
 						
 						
@@ -146,11 +187,47 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 						try {
 							getProcessor().process(exchange);
 							events++;
+							
+							//File cachefile = new File("sendedEvents.dat");
+							//removeLineFromFile("sendedEvents.dat", "Tgc1-1Cp1_ping_OK");
+							
 						} catch (Exception e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
 							logger.error( String.format("Error while process Exchange message: %s ", e));
 						} 
+						
+						/*
+						logger.debug("*** Create Exchange for DELETE ***" );
+						
+						
+						context = getContext();
+						
+						Endpoint endpoint = context.getEndpoint("cache://ServerCacheTest");
+						logger.debug("*** endpoint ***" + endpoint );
+						Exchange exchange1 = endpoint.createExchange();
+						logger.debug("*** exchange1 ***" + exchange1 );
+					    //exchange.getIn().setBody(vmevents.get(i1), Event.class);
+					    exchange1.getIn().setHeader(CacheConstants.CACHE_OPERATION, CacheConstants.CACHE_OPERATION_DELETE);
+					    exchange1.getIn().setHeader(CacheConstants.CACHE_KEY, key1+"_OK");
+					    //exchange1.getIn().setHeader("EventId", event.getExternalid());
+
+					    
+					    Producer producer2 = null;
+						try {
+							producer2 = endpoint.createProducer();
+						} catch (Exception e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						
+					    try {
+					    	producer2.process(exchange1);
+						} catch (Exception e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						*/
 					
 					}
 				}
@@ -185,7 +262,8 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 		}
 		
 		logger.info( String.format("***Sended to Exchange messages: %d ***", events));
-	
+		
+		removeLineFromFile("sendedEvents.dat", "Tgc1-1Cp1_ping_OK");
 	
         return 1;
 	}
@@ -213,6 +291,13 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 		event = genDeviceObj(vmtitle, "ping", 
 				vmStatuses.get("ping_colour").toString(), vmStatuses.get("datetime").toString());
 		eventList.add(event);
+		/*
+		 event = genDeviceObj(vmtitle, "ping", 
+				"#FF0000", vmStatuses.get("datetime").toString());
+		eventList.add(event);
+		*/
+		
+		
 		event = genDeviceObj(vmtitle, "snmp", 
 				vmStatuses.get("snmp_colour").toString(), vmStatuses.get("datetime").toString());
 		eventList.add(event);
@@ -225,7 +310,6 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 		event = genDeviceObj(vmtitle, "power", 
 				vmStatuses.get("power_colour").toString(), vmStatuses.get("datetime").toString());
 		eventList.add(event);
-
 		
 		return eventList;
 	}
@@ -355,7 +439,9 @@ public class OVMMConsumer extends ScheduledPollConsumer {
             pstmt = con.prepareStatement("SELECT tree.title, tree.type, tree.uuid " +
                         "FROM tree " +
                         "WHERE tree.uuid <> ?");
+                        //"LIMIT ?;");
             pstmt.setString(1, "");
+            //pstmt.setInt(2, 2);
             
             logger.debug("MYSQL query: " +  pstmt.toString()); 
             resultset = pstmt.executeQuery();
@@ -490,5 +576,66 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 		*/
 		return newseverity;
 	}
+	
+	public void removeLineFromFile(String file, String lineToRemove) {
+		BufferedReader br = null;
+		PrintWriter pw = null;
+	    try {
+
+	      File inFile = new File(file);
+
+	      if (!inFile.isFile()) {
+	        System.out.println("Parameter is not an existing file");
+	        return;
+	      }
+
+	      //Construct the new file that will later be renamed to the original filename.
+	      File tempFile = new File(inFile.getAbsolutePath() + ".tmp");
+
+	      br = new BufferedReader(new FileReader(file));
+	      pw = new PrintWriter(new FileWriter(tempFile));
+
+	      String line = null;
+
+	      //Read from the original file and write to the new
+	      //unless content matches data to be removed.
+	      while ((line = br.readLine()) != null) {
+
+	        if (!line.trim().equals(lineToRemove)) {
+
+	          pw.println(line);
+	          pw.flush();
+	        }
+	      }
+	      pw.close();
+	      br.close();
+
+	      //Delete the original file
+	      if (!inFile.delete()) {
+	        System.out.println("Could not delete file");
+	        return;
+	      }
+
+	      //Rename the new file to the filename the original file had.
+	      if (!tempFile.renameTo(inFile))
+	        System.out.println("Could not rename file");
+
+	    }
+	    catch (FileNotFoundException ex) {
+	      ex.printStackTrace();
+	    }
+	    catch (IOException ex) {
+	      ex.printStackTrace();
+	    }
+	    finally {
+	    	try {
+	    		pw.close();
+				br.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	  }
 
 }
