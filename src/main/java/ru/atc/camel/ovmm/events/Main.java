@@ -4,12 +4,17 @@ import java.io.File;
 import javax.jms.ConnectionFactory;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.camel.ComponentConfiguration;
 import org.apache.camel.Exchange;
 import org.apache.camel.Header;
+import org.apache.camel.LoggingLevel;
 import org.apache.camel.Message;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.component.cache.CacheComponent;
+import org.apache.camel.component.cache.CacheConfiguration;
 import org.apache.camel.component.cache.CacheConstants;
+import org.apache.camel.component.cache.CacheManagerFactory;
 import org.apache.camel.component.jms.JmsComponent;
 import org.apache.camel.component.properties.PropertiesComponent;
 import org.apache.camel.model.ModelCamelContext;
@@ -17,9 +22,20 @@ import org.apache.camel.model.dataformat.JsonDataFormat;
 import org.apache.camel.model.dataformat.JsonLibrary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import net.sf.ehcache.CacheManager;
+
+//import net.sf.ehcache.config.CacheConfiguration;
+//import net.sf.ehcache.config.Configuration;
+//import net.sf.ehcache.config.PersistenceConfiguration;
+//import net.sf.ehcache.config.PersistenceConfiguration.Strategy;
+//import net.sf.ehcache.management.CacheManager;
+
 import org.apache.camel.processor.cache.CacheBasedMessageBodyReplacer;
 import org.apache.camel.processor.cache.CacheBasedTokenReplacer;
 import org.apache.camel.processor.idempotent.FileIdempotentRepository;
+import org.apache.log4j.Level;
+
 import ru.at_consulting.itsm.event.Event;
 
 
@@ -84,8 +100,66 @@ public class Main {
 						("tcp://" + activemq_ip + ":" + activemq_port);		
 				context.addComponent("activemq", JmsComponent.jmsComponentAutoAcknowledge(connectionFactory));
 				
+				//context.addComponent("cache", CacheComponent());
+				
+				CacheComponent cache = new CacheComponent();
+				CacheManagerFactory cacheManagerFactory = new CacheManagerFactory() {
+					
+					@Override
+					protected CacheManager createCacheManagerInstance() {
+						// TODO Auto-generated method stub
+						CacheManager manager = CacheManager.newInstance();
+						return manager;
+					}
+				};
+				//cacheManagerFactory.
+				cache.setCacheManagerFactory(cacheManagerFactory);
+				CacheConfiguration configuration = new CacheConfiguration();
+				
+				//Strategy asd = Strategy.LOCALRESTARTABLE;
+				//asd.LOCALRESTARTABLE;
+				
+				//configuration.stra
+				
+				configuration.setEternal(true);
+				//configuration.setEternal(true);
+				//configuration.setLogging(true);
+				//configuration.setMaxEntriesLocalHeap(2500);
+				configuration.setMaxElementsInMemory(2500);
+				configuration.setOverflowToDisk(true);
+				//PersistenceConfiguration persistenceConfiguration = new PersistenceConfiguration();
+				//persistenceConfiguration.strategy(asd);
+				//configuration.addPersistence(persistenceConfiguration);
+				configuration.setTimeToIdleSeconds(172800);
+				configuration.setTimeToLiveSeconds(172800);
+				configuration.setDiskPersistent(true);
+				configuration.setDiskExpiryThreadIntervalSeconds(900);
+	
+				cache.setConfiguration(configuration);
+				
+				//ComponentConfiguration sss = cache.createComponentConfiguration();
+				///sss.se
+				
+				context.addComponent("cache", cache );
+				
+				
+				//CacheManagerFactory cacheManagerFactory = new CacheManagerFactory();
+				
 				logger.info("*****context: " + 
 						context);
+				/*
+				CacheConfiguration config=new CacheConfiguration("ServerCacheTest",1500)
+						.timeToIdleSeconds(172800)
+						.timeToLiveSeconds(172800)
+						.diskExpiryThreadIntervalSeconds(172800)
+						.eternal(true)
+						.overflowToOffHeap(true);
+				*/
+				
+				/*
+				net.sf.ehcache.CacheManager cacheManager = new net.sf.ehcache.CacheManager(configurationFileName);
+				context.addComponent("activemq", JmsComponent.jmsComponentAutoAcknowledge(connectionFactory));
+				*/
 				
 				OVMMConsumer.setContext(context);
 				
@@ -94,17 +168,13 @@ public class Main {
 				File cachefile = new File("sendedEvents.dat");
 		        cachefile.createNewFile();
 		        
-		        /*
-		        from("cache://ServerCacheTest" +
-				          "?maxElementsInMemory=1500" +
-				          "&eternal=true" +
-				          "&overflowToDisk=true" +
-				          "&diskPersistent=true")
-				          */
-		        //.log("*** Value added to the cache ****");
+		        
+		        from("cache:Test")
+				          
+		        .log(LoggingLevel.DEBUG, "*** Value added to the cache ****")
 		        //.log("*** Header1 ${header.EventUniqId}" )
 		       // .log("*** Header2 ${header.CamelCacheKey}" );
-		        //.end();
+		        .end();
 		        
 		       // from("cache://ServerCacheTest")
 		        
@@ -120,7 +190,7 @@ public class Main {
 		            
 		        from("direct:delete")
 		        //.filter(method(MyBean.class, "isGoldCustomer"))
-		        //.log("*** Delete old value from the cache ****")
+		        .log(LoggingLevel.DEBUG, "*** Delete old value from the cache ****")
 		        //.log("*** 1 Header111 ${header.EventUniqId}" )
 		        //.log("*** 2 Header222 ${header.CamelCacheKey}" )
 		        //.log("*** 3 Header223 ${header.EventUniqIdWithoutStatus}" )
@@ -133,7 +203,7 @@ public class Main {
 						in.setHeader(CacheConstants.CACHE_KEY, key+"_ERROR");
 					}
 				})
-				.to("cache://ServerCacheTest")
+				.to("cache:Test")
 				.process(new Processor() {
 					public void process(Exchange exchange) throws Exception {
 						Message in = exchange.getIn();
@@ -142,7 +212,7 @@ public class Main {
 						in.setHeader(CacheConstants.CACHE_KEY, key+"_NA");
 					}
 				})
-				.to("cache://ServerCacheTest")
+				.to("cache:Test")
 				.process(new Processor() {
 					public void process(Exchange exchange) throws Exception {
 						Message in = exchange.getIn();
@@ -151,8 +221,10 @@ public class Main {
 						in.setHeader(CacheConstants.CACHE_KEY, key+"_OK");
 					}
 				})
-				.to("cache://ServerCacheTest");
+				.to("cache:Test")
+				.end();
 		        
+				//LoggingLevel error = null;
 				from("ovmm://events?"
 		    			+ "delay={{delay}}&"
 		    			+ "username={{username}}&"
@@ -170,11 +242,11 @@ public class Main {
 			             )
 			*/	
 					
-					.to("cache://ServerCacheTest")
+					.to("cache:Test")
 					.choice()
 						.when(header(CacheConstants.CACHE_ELEMENT_WAS_FOUND).isNull())
 						//.filter()
-						//.log("*** Try to delete before add ****")
+						.log(LoggingLevel.DEBUG,"*** Try to delete before add ****")
 						.to("direct:delete")
 						.process(new Processor() {
 							public void process(Exchange exchange) throws Exception {
@@ -195,7 +267,7 @@ public class Main {
 							}
 						})
 							.to("direct:ShowData")
-							.to("cache://ServerCacheTest") 
+							.to("cache:Test") 
 							.marshal(myJson)
 							.to("activemq:OVMM-tgk1-Events.queue")
 							.log("New event1: ${id} ${header.EventUniqId}")
@@ -233,7 +305,7 @@ public class Main {
 							}
 						})
 							
-							.to("direct:ShowData");
+							.to("direct:ShowData")
 							//.log("***OWERWISE***")
 							//.log("*1 ${header.EventUniqId}")
 							//.log("*2 ${header.EventUniqIdWithoutStatus}")
@@ -243,7 +315,7 @@ public class Main {
 							//.marshal(myJson)
 							//.to("activemq:OVMM-tgk1-Events.queue")
 							//.log("Old event2: ${id} ${header.EventUniqId}");
-					//.end();
+					.end();
 				
 								
 				from("direct:ShowData").process(new Processor() {

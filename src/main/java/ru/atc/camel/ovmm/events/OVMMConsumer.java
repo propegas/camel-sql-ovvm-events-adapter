@@ -439,9 +439,9 @@ public class OVMMConsumer extends ScheduledPollConsumer {
             pstmt = con.prepareStatement("SELECT tree.title, tree.type, tree.uuid " +
                         "FROM tree " +
                         "WHERE tree.uuid <> ?");
-                        //"LIMIT ?;");
+                       // +" LIMIT ?;");
             pstmt.setString(1, "");
-            //pstmt.setInt(2, 2);
+            //pstmt.setInt(2, 3);
             
             logger.debug("MYSQL query: " +  pstmt.toString()); 
             resultset = pstmt.executeQuery();
