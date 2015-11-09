@@ -403,7 +403,7 @@ public class OVMMConsumer extends ScheduledPollConsumer {
             
             resultset.close();
             pstmt.close();
-            
+            if (con != null) con.close();
             return list;
             
 		} catch (SQLException e) {
@@ -413,7 +413,7 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 			//logger.error( "Error2 while SQL execution: " + e.getCause() );
 			logger.error( String.format("Error while SQL execution: %s ", e));
 			//logger.error( ExceptionUtils.getFullStackTrace(e) );
-			
+			 if (con != null) con.close();
 			//logger.error("Error while SQL executiom: " + e.printStackTrace());
 			
 			return null;
@@ -453,11 +453,16 @@ public class OVMMConsumer extends ScheduledPollConsumer {
             resultset.close();
             pstmt.close();
             
+            if (con != null) con.close();
+            
             return list;
             
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			//e.printStackTrace();
+			logger.error( String.format("Error while SQL execution: %s ", e));
+			
+			if (con != null) con.close();
 			
 			return null;
 
