@@ -347,7 +347,7 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 		event.setParametr("Status");
 		String status = setRightValue(parametrValue);
 		event.setParametrValue(status);
-		event.setSeverity(setRightValue(parametrValue));
+		event.setSeverity(setRightSeverity(parametrValue));
 		event.setMessage(setRightMessage(vmtitle, object, status));
 		event.setCategory("SYSTEM");
 		event.setStatus("OPEN");
@@ -550,24 +550,7 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 	public static String setRightSeverity(String colour)
 	{
 		String newseverity = "";
-		/*
-		 * 
-		<pre>
- * &lt;simpleType name="ISXCAlarmSeverity">
- *   &lt;restriction base="{http://www.w3.org/2001/XMLSchema}string">
- *     &lt;enumeration value="ERROR"/>
- *     &lt;enumeration value="FAILURE"/>
- *     &lt;enumeration value="CRITICAL"/>
- *     &lt;enumeration value="WARNING"/>
- *     &lt;enumeration value="INFORMATIONAL"/>
- *   &lt;/restriction>
- * &lt;/simpleType>
- * </pre>
-
-		 */
-		
-		
-		
+			
 		switch (colour) {
         	case "#006600":  newseverity = PersistentEventSeverity.OK.name();break;
         	case "#FF0000":  newseverity = PersistentEventSeverity.CRITICAL.name();break;
