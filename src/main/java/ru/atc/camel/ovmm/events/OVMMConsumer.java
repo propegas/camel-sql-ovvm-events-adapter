@@ -522,8 +522,8 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 			//logger.error( ExceptionUtils.getFullStackTrace(e) );
 			 if (con != null) con.close();
 			//logger.error("Error while SQL executiom: " + e.printStackTrace());
-			
-			return null;
+			throw e;
+			//return null;
 
 		} finally {
             if (con != null) con.close();
@@ -571,7 +571,8 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 			
 			if (con != null) con.close();
 			
-			return null;
+			//return null;
+			throw e;
 
 		} finally {
             if (con != null) con.close();
