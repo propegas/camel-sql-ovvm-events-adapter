@@ -351,7 +351,8 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 		event.setMessage(setRightMessage(vmtitle, object, status));
 		event.setCategory("SYSTEM");
 		event.setStatus("OPEN");
-		event.setService("OVVM");
+		event.setService("OVMM");
+		event.setEventsource("OVMM");
 		
 
 		//System.out.println(event.toString());
