@@ -196,7 +196,7 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 	private int processSearchEvents()  throws Exception, Error, SQLException {
 		
 		//Long timestamp;
-		DataSource dataSource = setupDataSource();
+		BasicDataSource dataSource = setupDataSource();
 		
 		List<HashMap<String, Object>> listHostsAndUuids = new ArrayList<HashMap<String,Object>>();
 		List<HashMap<String, Object>> listVmStatuses = null;
@@ -339,6 +339,7 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 			e.printStackTrace();
 			logger.error( String.format("Error while get Events from SQL: %s ", e));
 			genErrorMessage(e.toString());
+			dataSource.close();
 			return 0;
 		}
 		catch (NullPointerException e) {
@@ -346,6 +347,7 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 			e.printStackTrace();
 			logger.error( String.format("Error while get Events from SQL: %s ", e));
 			genErrorMessage(e.toString());
+			dataSource.close();
 			return 0;
 		}
 		catch (Error e) {
@@ -353,6 +355,7 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 			e.printStackTrace();
 			logger.error( String.format("Error while get Events from SQL: %s ", e));
 			genErrorMessage(e.toString());
+			dataSource.close();
 			return 0;
 		}
 		catch (Throwable e) {
@@ -360,12 +363,16 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 			e.printStackTrace();
 			logger.error( String.format("Error while get Events from SQL: %s ", e));
 			genErrorMessage(e.getMessage() + " " + e.toString());
+			dataSource.close();
 			return 0;
 		}
 		finally
 		{
+			dataSource.close();
 			//return 0;
 		}
+		
+		dataSource.close();
 		
 		logger.info( String.format("***Sended to Exchange messages: %d ***", events));
 		
@@ -622,7 +629,7 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 		}
 	}
 
-	private DataSource setupDataSource() {
+	private BasicDataSource setupDataSource() {
 		
 		String url = String.format("jdbc:mysql://%s:%s/%s",
 		endpoint.getConfiguration().getMysql_host(), endpoint.getConfiguration().getMysql_port(),

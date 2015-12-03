@@ -123,8 +123,8 @@ public class Main {
 				//configuration.stra
 				
 				configuration.setEternal(true);
-				configuration.setDiskStorePath("/tmp/OPSM");
-				configuration.setCacheName("OPSM");
+				configuration.setDiskStorePath("/tmp/OVMM");
+				configuration.setCacheName("OVMM");
 				//configuration.setEternal(true);
 				//configuration.setLogging(true);
 				//configuration.setMaxEntriesLocalHeap(2500);
