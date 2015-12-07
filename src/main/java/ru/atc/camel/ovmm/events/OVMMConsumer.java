@@ -141,6 +141,8 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 		genevent.setSeverity(PersistentEventSeverity.CRITICAL.name());
 		genevent.setTimestamp(timestamp);
 		genevent.setEventsource("OVMM_EVENTS_ADAPTER");
+		genevent.setStatus("OPEN");
+		genevent.setHost("adapter");
 		
 		logger.info(" **** Create Exchange for Error Message container");
         Exchange exchange = getEndpoint().createExchange();
@@ -149,7 +151,7 @@ public class OVMMConsumer extends ScheduledPollConsumer {
         exchange.getIn().setHeader("EventIdAndStatus", "Error_" +timestamp);
         exchange.getIn().setHeader("Timestamp", timestamp);
         exchange.getIn().setHeader("queueName", "Events");
-        exchange.getIn().setHeader("Type", "Heartbeat");
+        exchange.getIn().setHeader("Type", "Error");
 
         try {
 			getProcessor().process(exchange);
@@ -179,7 +181,9 @@ public class OVMMConsumer extends ScheduledPollConsumer {
         exchange.getIn().setBody(genevent, Event.class);
         
         exchange.getIn().setHeader("Timestamp", timestamp);
-        exchange.getIn().setHeader("queueName", "Events");
+        exchange.getIn().setHeader("queueName", "Heartbeats");
+        exchange.getIn().setHeader("Type", "Heartbeats");
+        exchange.getIn().setHeader("Source", "OVMM_EVENTS_ADAPTER");
 
         try {
         	//Processor processor = getProcessor();
