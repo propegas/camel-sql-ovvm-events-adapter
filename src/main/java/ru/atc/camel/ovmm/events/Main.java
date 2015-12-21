@@ -123,7 +123,7 @@ public class Main {
 				//configuration.stra
 				
 				configuration.setEternal(true);
-				configuration.setDiskStorePath("/tmp/OVMM");
+				configuration.setDiskStorePath("/tmp/zsm/OVMM/");
 				configuration.setCacheName("OVMM");
 				//configuration.setEternal(true);
 				//configuration.setLogging(true);
