@@ -691,7 +691,7 @@ public class OVMMConsumer extends ScheduledPollConsumer {
 		String newseverity = "";
 			
 		switch (colour) {
-        	case "#006600":  newseverity = "CLOSE";break;
+        	case "#006600":  newseverity = "CLOSED";break;
         	case "#FF0000":  newseverity = "OPEN";break;
         	default: newseverity = PersistentEventSeverity.INFO.name();break;
 
